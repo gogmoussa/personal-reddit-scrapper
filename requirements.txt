@@ -1,0 +1,10 @@
+apify-client
+bertopic
+flask
+python-dotenv
+sentence-transformers
+scikit-learn
+umap-learn
+hdbscan
+pandas
+numpy

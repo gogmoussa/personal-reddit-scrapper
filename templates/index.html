@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Pain Point Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent-primary: #6366f1;
+            --accent-secondary: #ec4899;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(15, 23, 42, 0.8);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 2rem;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-dim);
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            padding: 0 2rem 2rem 2rem;
+        }
+
+        /* Sidebar / Config Panel */
+        .config-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-dim);
+        }
+
+        input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            color: var(--text-main);
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* Results Area */
+        .results-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .summary-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            height: 400px;
+        }
+
+        .topic-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .topic-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .topic-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-primary);
+        }
+
+        .topic-card:hover {
+            transform: translateX(8px);
+        }
+
+        .topic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .topic-label {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: capitalize;
+        }
+
+        .topic-count {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-primary);
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .example-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .example-item {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            border-left: 2px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .example-footer {
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .view-link {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .view-link:hover {
+            text-decoration: underline;
+        }
+
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 0.5rem auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Color Coding */
+        .rank-0::before {
+            background: #ef4444;
+        }
+
+        /* Red */
+        .rank-1::before {
+            background: #f97316;
+        }
+
+        /* Orange */
+        .rank-2::before {
+            background: #f59e0b;
+        }
+
+        /* Yellow */
+        .rank-3::before {
+            background: #10b981;
+        }
+
+        /* Green */
+        .rank-4::before {
+            background: #06b6d4;
+        }
+
+        /* Cyan */
+
+        #no-results {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-dim);
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .config-panel {
+                position: static;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Reddit Pain Point Explorer</h1>
+        <p>Surface validated user complaints for your next product idea</p>
+    </header>
+
+    <div class="container">
+        <aside class="config-panel">
+            <div class="form-group">
+                <label for="topic">Topic / Product</label>
+                <input type="text" id="topic" placeholder="e.g. Notion, Figma, Linear" value="Linear">
+            </div>
+            <div class="form-group">
+                <label for="subreddits">Subreddits (comma separated)</label>
+                <input type="text" id="subreddits" placeholder="e.g. figma, uiux, productivity"
+                    value="LinearHighlight, productivity">
+            </div>
+            <div class="form-group">
+                <label for="limit">Max Posts to Scrape</label>
+                <input type="number" id="limit" value="150" min="50" max="500">
+            </div>
+            <button id="run-btn">Run Discovery Scrape</button>
+            <div class="status" id="status-text">Ready to explore.</div>
+            <div class="loader" id="loader"></div>
+        </aside>
+
+        <main class="results-panel">
+            <div id="results-content" style="display: none;">
+                <div class="summary-bar">
+                    <span id="summary-text">Analyzing comments...</span>
+                    <span id="topic-count-badge" class="topic-count">0 Themes Found</span>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="topicChart"></canvas>
+                </div>
+
+                <div class="topic-grid" id="topic-grid">
+                    <!-- Cards will be injected here -->
+                </div>
+            </div>
+
+            <div id="no-results">
+                <p>No data to display. Run a scrape to get started.</p>
+                <p style="font-size: 0.8rem; margin-top: 1rem;">Note: The first run may take a few minutes for model
+                    initialization.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const runBtn = document.getElementById('run-btn');
+        const statusText = document.getElementById('status-text');
+        const loader = document.getElementById('loader');
+        const resultsContent = document.getElementById('results-content');
+        const noResults = document.getElementById('no-results');
+        const topicGrid = document.getElementById('topic-grid');
+        const summaryText = document.getElementById('summary-text');
+        const topicCountBadge = document.getElementById('topic-count-badge');
+
+        let chart = null;
+
+        async function fetchResults() {
+            try {
+                const response = await fetch('/results');
+                if (response.ok) {
+                    const data = await response.json();
+                    renderData(data);
+                }
+            } catch (e) {
+                console.error("No cached results found.");
+            }
+        }
+
+        function renderData(data) {
+            noResults.style.display = 'none';
+            resultsContent.style.display = 'flex';
+
+            summaryText.textContent = `${data.total_comments} comments analyzed across ${data.subreddits.join(', ')}`;
+            topicCountBadge.textContent = `${data.topics.length} Themes Found`;
+
+            // Clear grid
+            topicGrid.innerHTML = '';
+
+            // Update Chart
+            updateChart(data.topics);
+
+            // Injected Topic Cards
+            data.topics.forEach((topic, index) => {
+                const card = document.createElement('div');
+                card.className = `topic-card rank-${Math.min(index, 4)}`;
+
+                let examplesHtml = topic.examples.map(ex => `
+                    <div class="example-item">
+                        <p>${ex.text}</p>
+                        <div class="example-footer">
+                            <span>Score: ${ex.score}</span>
+                            <a href="${ex.url}" target="_blank" class="view-link">View Original</a>
+                        </div>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="topic-header">
+                        <div class="topic-label">${topic.label}</div>
+                        <div class="topic-count">${topic.count} mentions</div>
+                    </div>
+                    <div class="example-list">
+                        ${examplesHtml}
+                    </div>
+                `;
+                topicGrid.appendChild(card);
+            });
+        }
+
+        function updateChart(topics) {
+            const ctx = document.getElementById('topicChart').getContext('2d');
+
+            if (chart) chart.destroy();
+
+            const labels = topics.map(t => t.label.split(',')[0]);
+            const counts = topics.map(t => t.count);
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mentions',
+                        data: counts,
+                        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                        borderColor: '#6366f1',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#f8fafc', font: { weight: 'bold' } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        runBtn.addEventListener('click', async () => {
+            const topic = document.getElementById('topic').value;
+            const subreddits = document.getElementById('subreddits').value;
+            const limit = document.getElementById('limit').value;
+
+            if (!topic || !subreddits) {
+                alert("Please fill in topic and subreddits.");
+                return;
+            }
+
+            // UI State
+            runBtn.disabled = true;
+            statusText.textContent = "Scraping & Clustering... This may take 2-4 minutes.";
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, subreddits, limit })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    renderData(result);
+                    statusText.textContent = "Analysis complete!";
+                } else {
+                    statusText.textContent = `Error: ${result.error}`;
+                    alert(result.error);
+                }
+            } catch (e) {
+                statusText.textContent = "Request failed. Check console.";
+                console.error(e);
+            } finally {
+                runBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        fetchResults();
+    </script>
+</body>
+
+</html>
