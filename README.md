@@ -1,4 +1,4 @@
-# Reddit Pain Point Scraper — MVP
+# Personal Reddit Scrapper
 
 A local Python app that scrapes Reddit for user complaints and pain points around a given topic or product, clusters them into themes using BERTopic, and displays them in a sleek web dashboard.
 
